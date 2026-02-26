@@ -23,19 +23,19 @@ class AppServiceProvider extends ServiceProvider
     {
         Event::listen(BuildingMenu::class, function (BuildingMenu $event) {
             $event->menu->add([
-                'text' => 'Positions',
-                'url' => 'positions',
-                'icon' => 'fas fa-fw fa-briefcase',
+                'text' => 'Album',
+                'url' => 'albums', // Adjust URL as needed
+                'icon' => 'fas fa-fw fa-images',
             ]);
             $event->menu->add([
-                'text' => 'Applicants',
-                'url' => 'applicants',
-                'icon' => 'fas fa-fw fa-users',
+                'text' => 'Recycle',
+                'url' => 'recycle', // Adjust URL as needed
+                'icon' => 'fas fa-fw fa-trash-alt',
             ]);
             $event->menu->add([
-                'text' => 'Interviews',
-                'url' => 'interviews',
-                'icon' => 'fas fa-fw fa-calendar-check',
+                'text' => 'Settings',
+                'url' => 'settings', // Adjust URL as needed
+                'icon' => 'fas fa-fw fa-cog',
             ]);
         });
     }

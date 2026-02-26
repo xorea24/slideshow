@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Traits\ApiResponses;
 use App\Http\Resources\Select2Resource;
 use App\Models\Position;
+use App\Models\Album;
 use App\Services\PositionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -25,10 +26,12 @@ class PositionController extends Controller
      */
     public function indexPage()
     {
-        $page_title = 'Positions';
+        // Reuse the albums dashboard-style page here as well
+        $albums = Album::with('photos')->orderBy('name')->get();
 
-        return view('admin.position.list', [
-            'page_title' => $page_title
+        return view('admin.albums.list', [
+            'title'  => 'Albums Management',
+            'albums' => $albums,
         ]);
     }
 

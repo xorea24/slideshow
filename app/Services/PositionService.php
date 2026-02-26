@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\DB;
 
 class PositionService
 {
+
+
     public function __construct(
         private PositionRepository $positionRepository
     ) {}
@@ -15,6 +17,8 @@ class PositionService
     /**
      * Get all positions
      */
+
+    
     public function getAllPositions($request)
     {
         try {
@@ -72,15 +76,15 @@ class PositionService
     /**
      * Create position
      */
-    public function createPosition($data)
+   // App/Services/PositionService.php
+
+    public function createPosition(array $data)
     {
-        try {
-            return DB::transaction(function() use($data) {
-                return new PositionResource($this->positionRepository->create($data));
-            });
-        } catch (\Throwable $t) {
-            throw $t;
-        }
+        // Siguraduhin na 'name' at 'description' ang column names sa database mo
+        return Position::create([
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+        ]);
     }
 
     /**
