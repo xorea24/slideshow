@@ -3,7 +3,7 @@
 @section('content')
 {{-- Alpine JS Data Wrapper --}}
 <div x-data="{ 
-    tab: '{{ session('last_tab') ?? (session('status') ? 'manage' : 'upload') }}',
+    
     search: '', 
     page: 1, 
     perPage: 4,
