@@ -2,14 +2,14 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth; // Added missing Auth import
-use App\Http\Controllers\AdminController;
-use App\Http\Controllers\ApplicantController;
-use App\Http\Controllers\InterviewController;
-use App\Http\Controllers\PositionController;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\AlbumController;
+use App\Http\Controllers\SettingsController;
 
-Auth::routes();
+    Auth::routes();
+
+
+Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('albums.destroy');
 
 // Public Routes
 Route::get('/', [PhotoController::class, 'publicGallery'])->name('home');
@@ -17,14 +17,17 @@ Route::get('/gallery', [PhotoController::class, 'publicGallery'])->name('gallery
 Route::get('/dashboard', [AlbumController::class, 'dashboard'])->name('dashboard');
 
 // Photos Group
-Route::controller(PhotoController::class)
-    ->prefix('photos')
-    ->name('photos.')
-    ->group(function () {
-        Route::post('/', 'store')->name('store');
-        // Added these routes to fix your "Hide" and "Delete Photo" buttons
-        Route::get('/{id}/toggle', 'toggleActive')->name('toggle'); 
-        Route::delete('/{id}', 'destroy')->name('destroy');
+Route::middleware(['auth'])->group(function () {
+    // DASHBOARD
+    Route::get('/dashboard', [PhotoController::class, 'index'])->name('dashboard');
+    // PHOTO MANAGEMENT
+    Route::post('/upload', [PhotoController::class, 'store'])->name('photos.store');
+    // Siguraduhin na 'photos.update' ang name at PATCH ang method
+    // Siguraduhin na PATCH ito at tumutugma ang 'photo.update'
+    Route::patch('{photo}', [PhotoController::class, 'update'])->name('photos.update');
+    Route::get('/photos/{photo}/toggle', [PhotoController::class, 'toggle'])->name('photos.toggle');
+    Route::delete('/photos/{photo}', [PhotoController::class, 'destroy'])->name('photos.destroy');
+        // 4. DESTROY / DELETE
     });
 
 // Albums Group
@@ -34,14 +37,12 @@ Route::controller(AlbumController::class)
     ->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/datatable', 'datatable')->name('datatable');
-        Route::post('/', 'store')->name('store');
-        Route::get('/recycle', 'recycle')->name('recycle');
-        
-        Route::get('/{id}', 'show')->name('show');
+        Route::post('/', 'store')->name('store');  
+        Route::get('/{id}', 'show')->name('show'); 
         Route::patch('/{id}', 'update')->name('update');
         
         // FIXED: Removed the extra 'albums.' prefix because it is already in the group name
-        Route::delete('/{id}', 'destroy')->name('destroy'); 
+        Route::delete('/{albumId}/force-delete', [AlbumController::class, 'forceDeleteAlbum'])->name('Photo.delete-album');
     });
 
 // Positions Group
@@ -59,9 +60,9 @@ Route::controller(PositionController::class)
     });
 
 // Applicants Group
-Route::controller(ApplicantController::class)
-    ->prefix('applicants')
-    ->name('applicants.')
+Route::controller(PhotoController::class)
+    ->prefix('recycle')
+    ->name('recycle.')
     ->group(function () {
         Route::get('/', 'indexPage')->name('index');
         Route::get('/datatable', 'datatable')->name('datatable');
@@ -73,9 +74,9 @@ Route::controller(ApplicantController::class)
     });
 
 // Interviews Group
-Route::controller(InterviewController::class)
-    ->prefix('interviews')
-    ->name('interviews.')
+Route::controller(SettingsController::class)
+    ->prefix('settings')
+    ->name('settings')
     ->group(function () {
         Route::get('/', 'indexPage')->name('index');
         Route::get('/datatable', 'datatable')->name('datatable');

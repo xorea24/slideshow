@@ -1,9 +1,11 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Album;
 use App\Models\Photo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage; // Added missing import for force deletion
 
 class AlbumController extends Controller
 {
@@ -23,16 +25,39 @@ class AlbumController extends Controller
     {
         $albums = Album::orderBy('name')->get();
 
-        // Reuse the existing album listing page
         return view('admin.albums.list', [
             'title' => 'Albums',
             'albums' => $albums,
+
+            
+        ]);
+
+        return view('admin.recycle.list', [
+            'title' => 'recycle',
+            'recycledAlbums' => $recycledAlbums,
+
+            
+        ]);
+    }
+
+    /**
+     * This method handles the /recycle route.
+     * Use this instead of the missing ApplicantController.
+     */
+    public function recycle()
+    {
+        $trashedAlbums = Album::onlyTrashed()->get();
+        $trashedPhotos = Photo::onlyTrashed()->with('album')->get();
+
+        return view('admin.recycle', [
+            'title' => 'Recycle Bin',
+            'trashedAlbums' => $trashedAlbums,
+            'trashedPhotos' => $trashedPhotos,
         ]);
     }
 
     public function datatable()
     {
-        // Siguraduhin na ang SBR helper mo ay naka-setup para dito
         $albums = Album::whereNull('deleted_at')->get(); 
         return response()->json(['data' => $albums]);
     }
@@ -68,7 +93,7 @@ class AlbumController extends Controller
         return response()->json(['message' => 'Album updated successfully!']);
     }
 
-   public function destroy(Album $album)
+    public function destroy(Album $album)
     {
         // Soft delete all slides in this album
         Photo::where('album_id', $album->id)->delete();
@@ -77,5 +102,43 @@ class AlbumController extends Controller
         $album->delete();
 
         return back()->with('status', 'Album moved to Recycle Bin.')->with('last_tab', 'manage');
+    }
+
+    public function restoreAlbum(Request $request)
+    {
+        $albumId = $request->input('album_id');
+        $album = Album::withTrashed()->find($albumId);
+
+        if ($album) {
+            $album->restore();
+        }
+
+        Photo::onlyTrashed()
+            ->where('album_id', $albumId)
+            ->restore();
+
+        return back()->with([
+            'status' => 'Album content restored.',
+            'last_tab' => 'trash'
+        ]);
+    }
+
+    public function forceDeleteAlbum($albumId)
+    {
+        $slides = Photo::onlyTrashed()->where('album_id', $albumId)->get();
+        
+        foreach ($slides as $slide) {
+            if ($slide->image_path && Storage::disk('public')->exists($slide->image_path)) {
+                Storage::disk('public')->delete($slide->image_path);
+            }
+            $slide->forceDelete();
+        }
+
+        $album = Album::withTrashed()->find($albumId);
+        if ($album) {
+            $album->forceDelete();
+        }
+
+        return back()->with('status', 'Album permanently deleted.')->with('last_tab', 'trash');
     }
 }

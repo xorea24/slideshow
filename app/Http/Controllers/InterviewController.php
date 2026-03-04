@@ -28,7 +28,7 @@ class InterviewController extends Controller
     {
         $page_title = 'Interviews';
 
-        return view('admin.interview.list', [
+        return view('admin.settings.list', [
             'page_title' => $page_title
         ]);
     }
