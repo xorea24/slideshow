@@ -21,7 +21,7 @@ Route::post('/settings/update', [SettingsController::class, 'update'])->name('se
 // Add this line to handle the photo updates (title and description)
 // Siguraduhin na ang URL ay /photos/{id}/update
 Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
-Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update')->middleware('auth');
+
 
 // Siguraduhin na ang URL na ito ang tinatawag sa iyong JS fetch
 Route::get('/api/get-latest-settings', function () {
