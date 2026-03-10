@@ -26,7 +26,9 @@ class PhotoController extends Controller
       public function indexPage()
     {
         // Eager load photos to prevent the "count() on null" error in Blade
-        $albums = Album::with('photos')->orderBy('name')->get();
+         $albums = Album::with(['slides' => function($query) {
+            $query->latest(); 
+        }])->latest()->get();
 
         return view('admin.albums.list', [
             'title'  => 'Albums Management',
@@ -119,7 +121,7 @@ class PhotoController extends Controller
         // FIXED: Changed 'category_name' to 'name' to match your DB
         $photo->update([
             'name' => $request->name,
-            'description' => $request->description,
+            'description' => $request->description, 
         ]);
 
         return back()

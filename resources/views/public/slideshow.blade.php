@@ -12,7 +12,7 @@
     <style>
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
         .swiper { width: 100%; height: 100vh; }
-        .swiper-slide img { width: 100%; height: 100%; object-fit: cover; }
+        .swiper-slide img { width: 100%; height: 100%; object-fit:   cover; }
 
         .title-overlay {
             position: absolute;

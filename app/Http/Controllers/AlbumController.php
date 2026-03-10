@@ -17,7 +17,9 @@ class AlbumController extends Controller
      */
     public function index()
     {
-        $albums = Album::orderBy('name')->get();
+        $albums = Album::with(['photos' => function($query) {
+            $query->latest(); 
+        }])->latest()->get();
 
         return view('admin.albums.list', [
             'title' => 'Albums',
