@@ -1,55 +1,26 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth; // Added missing Auth import
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\PhotoController;
 use App\Http\Controllers\AlbumController;
 use App\Http\Controllers\SettingsController;
-
-// Auth routes 
-
-Route::middleware(['auth'])->prefix('albums')->group(function () {
-    Route::get('/', [AlbumController::class, 'index'])->name('albums.index');
-    Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('albums.destroy');
-});
-Auth::routes();
-
-// Settings Update Route (AJAX)
-Route::get('/settings/latest', [SettingsController::class, 'getLatestData']);
-
-Route::post('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
-// Add this line to handle the photo updates (title and description)
-// Siguraduhin na ang URL ay /photos/{id}/update
-Route::patch('/settings', [SettingsController::class, 'update'])->name('settings.update');
-
-
-// Siguraduhin na ang URL na ito ang tinatawag sa iyong JS fetch
-Route::get('/api/get-latest-settings', function () {
-    $lastSetting = DB::table('settings')->max('updated_at');
-    $lastImage = DB::table('photos')->max('updated_at');
-    $lastAlbum = DB::table('albums')->max('updated_at'); // Isama ang album updates
-
-    return response()->json([
-        'last_update' => max($lastSetting, $lastImage, $lastAlbum)
-    ]);
-});
-
+use App\Models\Photo;
 
 /**
- * PUBLIC FACING VIEWS
+ * 1. LOGIN REDIRECT & AUTH ROUTES
  */
 Route::get('/', function () {
-    $displayAlbums = DB::table('settings')->where('key', 'display_album_ids')->value('value') ?? '';
-
-    if ($displayAlbums === '' || $displayAlbums === null) {
-        $slides = Photo::where('is_active', true)->orderBy('created_at', 'desc')->get();
-    } else {
-        $albumIds = array_map('intval', explode(',', $displayAlbums));
-        $slides = Photo::where('is_active', true)->whereIn('album_id', $albumIds)->orderBy('created_at', 'desc')->get();
-    }
-
-    return view('public', compact('slides'));
+    return redirect()->route('login');
 });
+
+Auth::routes();
+
+/**
+ * 2. PUBLIC FACING VIEWS (Slideshow)
+ */
+Route::get('/public-gallery', [PhotoController::class, 'publicGallery'])->name('gallery.public');
 
 Route::get('/public-Photo', function () {
     $displayAlbum = DB::table('settings')->where('key', 'display_album_id')->value('value') ?? 'all';
@@ -65,87 +36,58 @@ Route::get('/public-Photo', function () {
     return view('public-Photo', compact('slides', 'duration', 'effect'));
 });
 
-// Public Slideshow
-Route::get('/', [PhotoController::class, 'publicGallery'])->name('/');
-Route::get('/publicGallery', [PhotoController::class, 'publicGallery'])->name('gallery.public');
+// API for real-time updates
+Route::get('/api/get-latest-settings', function () {
+    $lastSetting = DB::table('settings')->max('updated_at');
+    $lastImage = DB::table('photos')->max('updated_at');
+    $lastAlbum = DB::table('albums')->max('updated_at');
 
-// Change this line in web.php:
-//Settings Section
-Route::post('/settings/update', [SettingsController::class, 'update'])->name('settings.update');
-
-// PhotoController::class, 'restoreAlbum' Section 
-Route::get('/recycle', [AlbumController::class, 'recycle'])->name('recycle.index');
-Route::patch('/{id}/restore', [PhotoController::class, 'restore'])->name('photos.restore');
-Route::delete('/{albumId}/force-delete', [AlbumController::class, 'forceDeleteAlbum'])->name('Photo.delete-album');
-Route::delete('/photos/{id}/force', [PhotoController::class, 'forceDelete'])->name('photos.forceDelete');
-
-// Add these to fix the "Route not found" errors in your Blade files
-Route::patch('/photos/restore-album', [AlbumController::class, 'restoreAlbum'])->name('photos.restore-album');
-Route::delete('/photos/force-delete-album/{id}', [AlbumController::class, 'forceDeleteAlbum'])->name('Photo.delete-album');
-Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('albums.destroy');
-
-
-// Change this line in web.php:
-
-
-// Photos Group
-Route::middleware(['auth'])->group(function () {
-    Route::post('/upload', [PhotoController::class, 'store'])->name('photos.store');
-    Route::patch('/photos/{photo}', [PhotoController::class, 'update'])->name('photos.update');
-    Route::post('/photos/{photo}/toggle', [PhotoController::class, 'toggle'])->name('photos.toggle');
-    Route::delete('/photos/{photo}', [PhotoController::class, 'destroy'])->name('photos.destroy');
-    Route::post('/albums/{album}/toggle-all', [PhotoController::class, 'toggleAll'])->name('albums.toggleAll');
-    });
-
-// Albums Group
-Route::controller(AlbumController::class)
-    ->prefix('albums')
-    ->name('albums.') 
-    ->group(function () {
-        // Ensure this points to the correct Controller and Method
-        Route::get('/recycle', [AlbumController::class, 'recycle'])->name('recycle.index');
-        Route::get('/albums', [AlbumController::class, 'index'])->name('admin.albums.list');
-        Route::get('/datatable', 'datatable')->name('datatable');
-        Route::post('/', 'store')->name('store');  
-        Route::get('/{id}', 'show')->name('show'); 
-        Route::patch('/{id}', 'update')->name('update');
-        // FIXED: Removed the extra 'albums.' prefix because it is already in the group name
-        Route::delete('/{albumId}/force-delete', [AlbumController::class, 'forceDeleteAlbum'])->name('Photo.delete-album');
-    });
-
-
-
-// Applicants Group
-Route::controller(PhotoController::class)
-    ->prefix('recycle')
-    ->name('recycle.')
-    ->group(function () {
-        Route::get('recycle', 'index')->name('index');
-        Route::get('/datatable', 'datatable')->name('datatable');
-        Route::get('/search', 'search')->name('search');
-        Route::get('/{id}', 'show')->name('show');
-        Route::post('/', 'store')->name('store');
-        Route::put('/{id}', 'update')->name('update');
-        Route::delete('/{id}', 'delete')->name('delete');
-    });
-
-// Interviews Group
-Route::controller(SettingsController::class)
-    ->prefix('settings')
-    ->name('settings')
-    ->group(function () {
-        Route::get('/', 'indexPage')->name('index');
-        Route::get('/datatable', 'datatable')->name('datatable');
-        Route::get('/search', 'search')->name('search');
-        Route::get('/{id}', 'show')->name('show');
-        Route::post('/', 'store')->name('store');
-        Route::put('/{id}', 'update')->name('update');
-        Route::delete('/{id}', 'delete')->name('delete');
-    });
-
-    //  home to albums
-    Route::get('/home', function () {
-    return redirect('/albums');
+    return response()->json([
+        'last_update' => max($lastSetting, $lastImage, $lastAlbum)
+    ]);
 });
 
-Route::post('/logout', [AlbumController::class, 'logout'])->name('logout');
+/**
+ * 3. AUTHENTICATED ROUTES (Admin Section)
+ */
+Route::middleware(['auth'])->group(function () {
+
+    // Home redirect to albums
+    Route::get('/home', function () {
+        return redirect()->route('albums.index');
+    });
+
+    // Albums
+    Route::prefix('albums')->name('albums.')->group(function () {
+        Route::get('/', [AlbumController::class, 'index'])->name('index');
+        Route::post('/', [AlbumController::class, 'store'])->name('store');
+        Route::get('/{id}', [AlbumController::class, 'show'])->name('show');
+        Route::patch('/{id}', [AlbumController::class, 'update'])->name('update');
+        Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('destroy');
+        Route::post('/{album}/toggle-all', [PhotoController::class, 'toggleAll'])->name('toggleAll');
+    });
+
+    // Photos
+    Route::prefix('photos')->name('photos.')->group(function () {
+        Route::post('/upload', [PhotoController::class, 'store'])->name('store');
+        Route::patch('/{photo}', [PhotoController::class, 'update'])->name('update');
+        Route::post('/{photo}/toggle', [PhotoController::class, 'toggle'])->name('toggle');
+        Route::delete('/{photo}', [PhotoController::class, 'destroy'])->name('destroy');
+        Route::patch('/restore-album', [AlbumController::class, 'restoreAlbum'])->name('restore-album');
+        Route::delete('/{id}/force', [PhotoController::class, 'forceDelete'])->name('forceDelete');
+    });
+
+    // Recycle Bin
+    Route::get('/recycle', [AlbumController::class, 'recycle'])->name('recycle.index');
+    Route::patch('/photos/{id}/restore', [PhotoController::class, 'restore'])->name('photos.restore');
+    Route::delete('/albums/{albumId}/force-delete', [AlbumController::class, 'forceDeleteAlbum'])->name('Photo.delete-album');
+
+    // Settings (FIXED: One route name only)
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingsController::class, 'indexPage'])->name('index');
+        Route::get('/latest', [SettingsController::class, 'getLatestData']);
+        Route::post('/update', [SettingsController::class, 'update'])->name('update');
+    });
+
+    Route::post('/logout', [AlbumController::class, 'logout'])->name('logout');
+});
