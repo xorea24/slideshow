@@ -107,21 +107,24 @@
 
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 $(document).ready(function() {
     let activeAlbums = [];
     const $queueContainer = $('#slideshow-queue');
     const $hiddenInput = $('#display_album_ids');
 
+    toastr.options = { "closeButton": true, "progressBar": true, "positionClass": "toast-top-right", "timeOut": "3000" };
+
     function init() {
-        // 1. Get IDs from the hidden input (which comes from $settings['display_album_ids'])
         const savedValue = $hiddenInput.val();
         if (savedValue) {
             const initialIds = savedValue.split(',');
             initialIds.forEach(id => {
                 const $item = $(`.available[data-id="${id}"]`);
                 if ($item.length) {
-                    // Populate activeAlbums array
                     activeAlbums.push({ id: id, name: $item.data('name') });
                     $item.addClass('selected');
                 }
@@ -133,20 +136,20 @@ $(document).ready(function() {
     function renderQueue() {
         $queueContainer.empty();
         if (activeAlbums.length === 0) {
-            $queueContainer.append('<div class="h-100 d-flex align-items-center justify-content-center text-muted py-5">Queue is empty</div>');
+            $queueContainer.append('<div class="h-100 d-flex flex-column align-items-center justify-content-center text-muted py-5"><i class="fas fa-layer-group mb-2 fa-2x opacity-50"></i><p class="small">Queue is empty</p></div>');
             return;
         }
 
         activeAlbums.forEach((album, index) => {
             $queueContainer.append(`
-                <div class="album-item shadow-sm" data-id="${album.id}">
+                <div class="album-item shadow-sm border-0" data-id="${album.id}">
                     <div class="d-flex align-items-center">
-                        <i class="fas fa-grip-vertical drag-handle mr-2"></i>
+                        <i class="fas fa-grip-vertical drag-handle mr-3 text-muted"></i>
                         <span class="badge-number">${index + 1}</span>
-                        <span class="font-weight-bold">${album.name}</span>
+                        <span class="font-weight-bold text-dark">${album.name}</span>
                     </div>
-                    <button type="button" class="btn btn-sm text-danger remove-btn" data-id="${album.id}">
-                        <i class="fas fa-times"></i>
+                    <button type="button" class="btn btn-sm btn-light rounded-circle remove-btn" data-id="${album.id}">
+                        <i class="fas fa-times text-danger"></i>
                     </button>
                 </div>`);
         });
@@ -158,11 +161,9 @@ $(document).ready(function() {
         $hiddenInput.val(ids);
     }
 
-    // Toggle Selection
     $(document).on('click', '.available', function() {
         const id = $(this).data('id').toString();
         const name = $(this).data('name');
-        
         if ($(this).hasClass('selected')) {
             activeAlbums = activeAlbums.filter(a => a.id != id);
             $(this).removeClass('selected');
@@ -173,7 +174,6 @@ $(document).ready(function() {
         renderQueue();
     });
 
-    // Remove from Queue
     $(document).on('click', '.remove-btn', function(e) {
         e.stopPropagation();
         const id = $(this).data('id').toString();
@@ -182,11 +182,10 @@ $(document).ready(function() {
         renderQueue();
     });
 
-    // Drag and Drop
     if (document.getElementById('slideshow-queue')) {
         new Sortable(document.getElementById('slideshow-queue'), {
             handle: '.drag-handle',
-            animation: 150,
+            animation: 250,
             onEnd: function() {
                 let newOrder = [];
                 $('#slideshow-queue .album-item').each(function() {
@@ -200,29 +199,41 @@ $(document).ready(function() {
         });
     }
 
-    // Save Logic
+    $('#album-search').on('keyup', function() {
+        let val = $(this).val().toLowerCase();
+        $('.available').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(val) > -1);
+        });
+    });
+
+    // MODERN SAVE LOGIC (Pinalitan ang luma mong browser alert)
     $('#save-settings-button').click(function(e) {
         e.preventDefault();
         const $btn = $(this);
         const originalText = $btn.html();
         
-        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> SAVING...');
+        $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> SAVING...');
         
         $.ajax({
             url: "{{ route('settings.update') }}",
             method: "POST",
             data: $('#settings-form').serialize(),
-            headers: {
-                'X-CSRF-TOKEN': $('input[name="_token"]').val()
-            },
+            headers: { 'X-CSRF-TOKEN': $('input[name="_token"]').val() },
             success: function(res) {
-                // Use SweetAlert if AdminLTE has it, otherwise alert
-                alert('Success: Configuration saved!');
+                // Magandang success popup
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Configuration Saved!',
+                    text: 'Your changes have been applied successfully.',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    borderRadius: '1.25rem'
+                });
+                toastr.success('Update successful');
                 $btn.prop('disabled', false).html(originalText);
             },
             error: function(xhr) {
-                console.error(xhr.responseText);
-                alert('Error: Could not save settings. Check console for details.');
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Could not save settings.' });
                 $btn.prop('disabled', false).html(originalText);
             }
         });

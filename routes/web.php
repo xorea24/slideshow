@@ -11,10 +11,6 @@ use App\Models\Photo;
 /**
  * 1. LOGIN REDIRECT & AUTH ROUTES
  */
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
 Auth::routes();
 
 /**
@@ -22,7 +18,7 @@ Auth::routes();
  */
 Route::get('/public-gallery', [PhotoController::class, 'publicGallery'])->name('gallery.public');
 
-Route::get('/public-Photo', function () {
+Route::get('/', function () {
     $displayAlbum = DB::table('settings')->where('key', 'display_album_id')->value('value') ?? 'all';
     $duration = DB::table('settings')->where('key', 'slide_duration')->value('value') ?? 5;
     $effect = DB::table('settings')->where('key', 'transition_effect')->value('value') ?? 'fade';
@@ -33,7 +29,7 @@ Route::get('/public-Photo', function () {
         $slides = Photo::where('is_active', true)->where('album_id', $displayAlbum)->orderBy('created_at', 'desc')->get();
     }
 
-    return view('public-Photo', compact('slides', 'duration', 'effect'));
+    return view('admin.slideshow', compact('slides', 'duration', 'effect'));
 });
 
 // API for real-time updates
@@ -91,3 +87,4 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/logout', [AlbumController::class, 'logout'])->name('logout');
 });
+
