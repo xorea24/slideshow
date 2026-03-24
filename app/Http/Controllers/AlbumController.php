@@ -15,11 +15,40 @@ class AlbumController extends Controller
      * Redirect to Albums after login is handled by RouteServiceProvider, 
      * but we ensure the index method is ready here.
      */
+
+        public function reorder(Request $request) {
+        $ids = $request->photo_ids;
+        
+        DB::transaction(function () use ($ids) {
+            foreach ($ids as $index => $id) {
+                Photo::where('id', $id)->update(['order' => $index]);
+            }
+        });
+
+        return response()->json(['status' => 'success']);
+    }
+
+        public function getPhotos($id)
+    {
+        // 1. Find the album with its photos
+        // Change 'photos' to whatever your relationship name is in the Album model
+        $album = \App\Models\Album::with('photos')->find($id);
+
+        if (!$album) {
+            return response()->json(['error' => 'Album not found'], 404);
+        }
+
+        // 2. Return the photos as JSON
+        // Make sure your Photo model has a 'path' attribute (or change 'path' in the JS)
+        return response()->json($album->photos);
+    }
     public function index()
     {
         $albums = Album::with(['photos' => function($query) {
             $query->latest(); 
         }])->latest()->get();
+
+        
 
         return view('admin.albums.list', [
             'title' => 'Albums',
@@ -94,23 +123,27 @@ class AlbumController extends Controller
         return back()->with('status', 'Album moved to Recycle Bin.')->with('last_tab', 'manage');
     }
 
+       // Add this inside your PhotoController class
     public function restoreAlbum(Request $request)
     {
         $albumId = $request->input('album_id');
-        $album = Album::withTrashed()->find($albumId);
 
-        if ($album) {
+        // 1. I-restore ang mismong Album kung ito ay naka-soft delete din
+        $album = Album::withTrashed()->find($albumId);
+        if ($album && $album->trashed()) {
             $album->restore();
         }
 
+        // 2. I-restore ang lahat ng photos sa ilalim ng album na ito
+        // Ginagamit ang update(['is_active' => true]) para siguradong lilitaw sa gallery
         Photo::onlyTrashed()
             ->where('album_id', $albumId)
-            ->restore();
+            ->each(function ($photo) {
+                $photo->restore();
+                $photo->update(['is_active' => true]);
+            });
 
-        return back()->with([
-            'status' => 'Album content restored.',
-            'last_tab' => 'trash'
-        ]);
+        return back()->with('success', 'Ang album at ang mga litrato nito ay naibalik na!');
     }
 
     public function forceDeleteAlbum($albumId)

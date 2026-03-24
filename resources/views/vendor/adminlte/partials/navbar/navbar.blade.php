@@ -17,20 +17,33 @@
     </ul>
 
     {{-- Navbar right links --}}
-    <ul class="navbar-nav ml-auto">
+    <ul class="navbar-nav ml-auto flex items-center">
         {{-- Custom right links --}}
         @yield('content_top_nav_right')
 
         {{-- Configured right links --}}
         @each('adminlte::partials.navbar.menu-item', $adminlte->menu('navbar-right'), 'item')
 
-        {{-- User menu link --}}
+        {{-- INTEGRATED SIGN OUT BUTTON (Replacing Name) --}}
         @if(Auth::user())
-            @if(config('adminlte.usermenu_enabled'))
-                @include('adminlte::partials.navbar.menu-item-dropdown-user-menu')
-            @else
-                @include('adminlte::partials.navbar.menu-item-logout-link')
-            @endif
+            <li class="nav-item">
+                <a class="nav-link flex items-center gap-2 group transition-all cursor-pointer px-3" 
+                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    
+                    {{-- Exit Icon --}}
+                    <i class="fas fa-sign-out-alt text-slate-400 group-hover:text-red-500 transition-colors"></i>
+                    
+                    {{-- Text replacement for "Joshua" --}}
+                    <span class="font-bold text-[11px] uppercase tracking-[0.15em] text-slate-600 group-hover:text-red-600 transition-colors">
+                        Sign Out
+                    </span>
+                </a>
+
+                {{-- Hidden Form for Laravel Security --}}
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" class="hidden">
+                    @csrf
+                </form>
+            </li>
         @endif
 
         {{-- Right sidebar toggler link --}}

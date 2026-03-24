@@ -29,23 +29,31 @@ return [
     */
 
     'disks' => [
-
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
             'throw' => false,
             'report' => false,
+            // ... other disks
+            'cloudinary' => [
+            'driver' => 'cloudinary',
         ],
+],
 
         'public' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public'),
-            'url' => rtrim(env('SOME_URL'), '/').'/storage',
-            'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
-        ],
+                'driver' => 'local',
+                'root' => storage_path('app/public'),
+                'url' => env('APP_URL').'/storage',
+                'visibility' => 'public',
+                'throw' => false,
+                'report' => false,
+            ],
+
+            // Dito dapat ilagay ang Cloudinary (kapantay ng local at public)
+            'cloudinary' => [
+                'driver' => 'cloudinary',
+            ],
 
         's3' => [
             'driver' => 's3',

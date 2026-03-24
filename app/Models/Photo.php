@@ -10,7 +10,7 @@ class Photo extends Model
     use SoftDeletes; // Gamitin ito sa loob ng class
 
     // Sa loob ng Photo.php o Slide.php
-protected $fillable = ['name', 'description', 'image_path', 'album_id', 'is_active'];
+protected $fillable = ['name', 'description', 'image_path', 'album_id', 'is_active', 'sort_order'];
 
     // FIX para sa RelationNotFoundException
     public function album()

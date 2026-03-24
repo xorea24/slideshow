@@ -23,6 +23,69 @@ class PhotoController extends Controller
        /**
  * Display the slideshow for the public.
  */
+
+    public function updateOrder(Request $request)
+    {
+       try {
+            $order = $request->input('photo_ids') ?? $request->input('order'); 
+            
+            if (!$order || !is_array($order)) {
+                return response()->json(['error' => 'No valid data provided'], 400);
+            }
+
+            // Loop through IDs sent from the frontend and update their position
+            foreach ($order as $index => $id) {
+                Photo::where('id', $id)->update([
+                    'sort_order' => $index,
+                    'updated_at' => now()
+                ]);
+            }
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getPhotos($id) 
+    {
+        // Siguraduhin na existing ang album bago kuhanin ang photos
+        $album = Album::findOrFail($id);
+
+        // Kuhanin ang photos na naka-sort base sa 'sort_order' at 'created_at'
+        $photos = $album->photos()
+                        ->orderBy('sort_order', 'asc') // Added sorting by sort_order
+                        ->orderBy('created_at', 'asc') // Fallback to created_at
+                        ->get(['id', 'image_path', 'name', 'description']);
+
+        return response()->json($photos);
+    }
+
+        public function forceDelete($id)
+    {
+        $photo = Photo::onlyTrashed()->findOrFail($id);
+        
+        // I-delete ang actual file sa storage bago i-delete ang record
+        if (\Storage::disk('public')->exists($photo->image_path)) {
+            \Storage::disk('public')->delete($photo->image_path);
+        }
+        
+        $photo->forceDelete();
+
+        return back()->with('success', 'Photo permanently deleted.');
+    }
+
+        public function restore($id)
+    {
+        // Hanapin ang photo sa mga "trashed" records
+        $photo = Photo::onlyTrashed()->findOrFail($id);
+        
+        // I-restore ang photo
+        $photo->restore();
+
+        return back()->with('success', 'Photo restored successfully!');
+    }
+
       public function indexPage()
     {
         // Eager load photos to prevent the "count() on null" error in Blade
@@ -55,7 +118,7 @@ class PhotoController extends Controller
             $slidesQuery->whereIn('photos.album_id', $albumIdArray);
         }
 
-        $slides = $slidesQuery->orderBy('photos.created_at', 'desc')->get();
+        $slides = $slidesQuery->orderBy('photos.sort_order', 'asc')->orderBy('photos.created_at', 'desc')->get();
 
         // 3. MASTER TIMESTAMP (FIXED: lowercase updated_at)
         $lastUpdate = max(
@@ -75,9 +138,11 @@ class PhotoController extends Controller
         // Validate arrays
         $request->validate([
             'images' => 'required|array',
+            'images.*' => 'required|image|mimes:jpeg,png,jpg|max:2048',
             'name' => 'required|array', // Matches your name[] input
             'descriptions' => 'nullable|array',
             'album_id' => 'nullable'
+            
         ]);
 
         $albumId = $request->album_id;
@@ -149,20 +214,41 @@ class PhotoController extends Controller
         return back()->with('status', 'Album visibility updated successfully!');
     }
 
-    public function destroy(Photo $photo)
-{
-    // Simply delete the photo record and the file
-    $photo->delete();
-
-    // Check if the request came from your AJAX 'submitForm'
-    if (request()->ajax()) {
-        return response()->json([
-            'success' => true,
-            'message' => 'Photo removed successfully'
-        ]);
+    public function clearAlbumPhotos(Album $album)
+    {
+        $photos = $album->photos;
+        foreach ($photos as $photo) {
+            $photo->delete();
+        }
+        return back()->with('success', 'All photos in the album have been deleted.');
     }
 
-    return back()->with('success', 'Photo deleted.');
+    public function destroy(Photo $photo)
+    {
+        // Simply delete the photo record and the file
+        $photo->delete();
+
+        // Check if the request came from your AJAX 'submitForm'
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Photo removed successfully'
+            ]);
+        }
+
+        return back()->with('success', 'Photo deleted.');
+    }
+
+    public function bulkDelete(Request $request)
+    {
+        $request->validate([
+            'photo_ids' => 'required|array',
+            'photo_ids.*' => 'integer|exists:photos,id'
+        ]);
+
+        Photo::whereIn('id', $request->photo_ids)->delete();
+
+        return back()->with('success', count($request->photo_ids) . ' photos deleted.');
     }
 }
 

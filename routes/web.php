@@ -13,6 +13,10 @@ use App\Models\Photo;
  */
 Auth::routes();
 
+Route::get('/admin/albums/{id}/photos', [PhotoController::class, 'getPhotos']);
+// routes/web.php
+
+Route::post('/photos/update-order', [PhotoController::class, 'updateOrder'])->name('photos.reorder');
 /**
  * 2. PUBLIC FACING VIEWS (Slideshow)
  */
@@ -24,9 +28,9 @@ Route::get('/', function () {
     $effect = DB::table('settings')->where('key', 'transition_effect')->value('value') ?? 'fade';
 
     if ($displayAlbum === 'all' || $displayAlbum === null) {
-        $slides = Photo::where('is_active', true)->orderBy('created_at', 'desc')->get();
+        $slides = Photo::where('is_active', true)->orderBy('sort_order', 'asc')->orderBy('created_at', 'desc')->get();
     } else {
-        $slides = Photo::where('is_active', true)->where('album_id', $displayAlbum)->orderBy('created_at', 'desc')->get();
+        $slides = Photo::where('is_active', true)->where('album_id', $displayAlbum)->orderBy('sort_order', 'asc')->orderBy('created_at', 'desc')->get();
     }
 
     return view('admin.slideshow', compact('slides', 'duration', 'effect'));
@@ -61,10 +65,12 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/{id}', [AlbumController::class, 'update'])->name('update');
         Route::delete('/{album}', [AlbumController::class, 'destroy'])->name('destroy');
         Route::post('/{album}/toggle-all', [PhotoController::class, 'toggleAll'])->name('toggleAll');
+        Route::delete('/{album}/photos', [PhotoController::class, 'clearAlbumPhotos'])->name('clearPhotos');
     });
 
     // Photos
     Route::prefix('photos')->name('photos.')->group(function () {
+        Route::post('/bulk-delete', [PhotoController::class, 'bulkDelete'])->name('bulkDelete');
         Route::post('/upload', [PhotoController::class, 'store'])->name('store');
         Route::patch('/{photo}', [PhotoController::class, 'update'])->name('update');
         Route::post('/{photo}/toggle', [PhotoController::class, 'toggle'])->name('toggle');
