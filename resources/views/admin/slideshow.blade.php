@@ -2,15 +2,20 @@
     // 1. FETCH SETTINGS & DATA
     $settingsRaw = \DB::table('settings')->get()->keyBy('key');
     
-    $seconds = $settingsRaw->get('slide_duration')->value ?? 5;
-    $effect = $settingsRaw->get('transition_effect')->value ?? 'fade';
-    
-    // FETCH THE NEW SEPARATED KEYS
-    $showName = $settingsRaw->get('show_photo_name')->value ?? '1';
-    $showDesc = $settingsRaw->get('show_photo_description')->value ?? '1';
-    $overlayPos = $settingsRaw->get('overlay_position')->value ?? 'bottom-left';
-    
-    $displayAlbumIds = $settingsRaw->get('display_album_ids')->value ?? '';
+    $getS = fn($k, $d) => isset($settingsRaw[$k]) ? $settingsRaw[$k]->value : $d;
+
+    $seconds = $getS('slide_duration', 5);
+    $effect = $getS('transition_effect', 'fade');
+    $showName = $getS('show_photo_name', '1');
+    $showDesc = $getS('show_photo_description', '1');
+    $overlayPos = $getS('overlay_position', 'bottom-left');
+    $fontStyle = $getS('font_style', 'Arial');
+    $fontColor = $getS('font_color', 'white');
+    $displayAlbumIds = $getS('display_album_ids', '');
+
+    // Determine shadow color for contrast
+    $shadowColor = ($fontColor === 'black') ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.8)';
+    $shadowGlow = ($fontColor === 'black') ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.4)';
     $albumIdArray = array_filter(explode(',', $displayAlbumIds));
 
     // 2. FETCH SLIDES
@@ -37,6 +42,19 @@
     $lastAlbumUpdate = \DB::table('albums')->max('updated_at');
     
     $masterTimestamp = max($lastSettingUpdate, $lastImageUpdate, $lastAlbumUpdate) ?? now();
+
+    // Map Font Styles to CSS Stacks
+    $fontStacks = [
+        'Inter' => '"Inter", sans-serif',
+        'Montserrat' => '"Montserrat", sans-serif',
+        'Tahoma' => 'Tahoma, Verdana, "Segoe UI", sans-serif',
+        'Book Antiqua' => '"Book Antiqua", Palatino, serif',
+        'Arial' => 'Arial, Helvetica, sans-serif',
+        'Georgia' => 'Georgia, serif',
+        'Times New Roman' => '"Times New Roman", Times, serif',
+        'Verdana' => 'Verdana, Geneva, sans-serif',
+    ];
+    $selectedFont = $fontStacks[$fontStyle] ?? 'Arial, sans-serif';
 @endphp
 
 <!DOCTYPE html>
@@ -45,6 +63,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Public Access - Mayor's Office</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
@@ -64,6 +86,14 @@
             height: 100% !important; 
             object-fit: cover;
         }
+        
+        @media (orientation: portrait) {
+            .swiper-slide img {
+                object-fit: contain;
+                background-color: black;
+            }
+        }
+
         .title-overlay {
             position: absolute;
             z-index: 50;
@@ -101,6 +131,13 @@
             from { opacity: 0; transform: translate(var(--tx), var(--ty)); filter: blur(5px); }
             to { opacity: 1; transform: translate(var(--tx), 0); filter: blur(0); }
         }
+        .custom-font {
+            font-family: {!! $selectedFont !!} !important;
+            color: {{ $fontColor }} !important;
+            text-shadow: 2px 2px 8px {{ $shadowColor }}, 
+                         0px 0px 15px {{ $shadowGlow }};
+        }
+
         #loading-overlay {
             position: fixed; inset: 0; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -126,22 +163,21 @@
                 <div class="swiper-slide relative">
                     <img src="{{ asset('storage/' . $slide->image_path) }}" alt="Slideshow Image">
 
-                    {{-- Separate Logic for Name and Description --}}
                     @if($showName == '1' || ($showDesc == '1' && $slide->description))
                         <div class="title-overlay animate-text pos-{{ $overlayPos }}">
                             
                             @if($showName == '1')
-                                <h1 class="text-white text-7xl font-black drop-shadow-2xl uppercase tracking-tighter mb-2">
+                                <h1 class="custom-font text-4xl md:text-5xl lg:text-7xl font-bold drop-shadow-2xl uppercase tracking-tighter mb-2">
                                     {{ $slide->name }}
                                 </h1>
                             @endif
 
                             @if($showDesc == '1' && $slide->description)
-                                <p class="text-white text-xl font-black drop-shadow-2xl uppercase tracking-tighter mb-2">
+                                <p class="custom-font text-base md:text-lg lg:text-xl font-medium drop-shadow-2xl uppercase tracking-tighter mb-2" 
+                                   style="opacity: 0.9;">
                                     {{ $slide->description }}
                                 </p>
                             @endif
-                            
                         </div>
                     @endif
                 </div>
@@ -184,7 +220,6 @@
         autoHeight: false, 
     };
 
-    // Apply Transition Effects
     if (effectSetting === 'fade') {
         swiperOptions.effect = 'fade';
         swiperOptions.fadeEffect = { crossFade: true };

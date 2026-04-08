@@ -36,6 +36,11 @@
                 </div>
 
                 <div class="flex items-center gap-3">
+                    {{-- Global Upload Button --}}
+                    <button @click="openUploadModal()" class="px-4 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm text-[10px] font-black uppercase flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    </button>
+
                     <div class="flex items-center gap-1 bg-gray-100/50 p-1.5 rounded-2xl border border-gray-100">
                         <button @click="prevPage()" :disabled="page === 1" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition disabled:opacity-30 active:scale-95 hover:bg-white hover:shadow-sm">Prev</button>
                         <div class="px-4 py-2 text-[10px] font-black text-blue-900 border-x border-gray-200">Page <span x-text="page"></span> of <span x-text="totalPages"></span></div>
@@ -106,8 +111,9 @@
                             </template>
                             
                             <button @click="openUploadModal(albumId)" 
-                                    class="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                    class="px-4 py-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm text-[10px] font-black uppercase flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                                
                             </button>
                             
                             <form action="{{ route('albums.destroy', $album->id) }}" method="POST" onsubmit="return confirm('Delete entire album?')">
@@ -217,6 +223,7 @@
                     </div>
 
                     {{-- Album Photo Pagination --}}
+                    
                     <div class="flex justify-center mt-12" x-show="totalPhotoPages > 1 && photoSearch.trim() === ''">
                         <div class="flex items-center gap-1 bg-white p-1.5 rounded-2xl border border-gray-100 shadow-lg">
                             <button @click="if(photoPage > 1) { photoPage--; $el.closest('.album-card').scrollIntoView({behavior: 'smooth'}); }" :disabled="photoPage === 1" class="px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl disabled:opacity-30 text-gray-600 hover:bg-blue-50">Prev</button>

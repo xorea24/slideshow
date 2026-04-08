@@ -1,28 +1,17 @@
 @extends('adminlte::auth.auth-page', ['authType' => 'login'])
 
-{{-- CUSTOM LOGO --}}
 @section('logo')
-<div class="text-center mb-6 mt-3 flex justify-center">
-    <a href="{{ url('/') }}" class="inline-flex flex-col items-center gap-1 transition-transform hover:-translate-y-0.5 duration-300">
-        <img src="{{ asset('vendor/adminlte/dist/img/AdminLTELogo.png') }}" 
-             alt="System Logo" 
-             class="h-24 w-24 object-contain drop-shadow-md rounded-full mb-3">
-            
-        <div class="text-center flex flex-col justify-center focus:outline-none">
-            <span class="text-2xl font-normal text-slate-800 tracking-tight leading-tight">MAYOR OFFICE</span>
-            <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-widest mt-1">Uploading System</span>
-        </div>
-    </a>
-</div>
 @stop
+
 
 @section('adminlte_css_pre')
     <link rel="stylesheet" href="{{ asset('vendor/icheck-bootstrap/icheck-bootstrap.min.css') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        .login-logo { display: none !important; }
         /* Smooth transitions for the AdminLTE box */
         .login-card-body { border-radius: 1.5rem; }
-        .card { border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important; margin-top: 2rem; }
+        .card { border-radius: 1.5rem; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important; margin-top: 5vh; }
         .input-group-text { border-radius: 0 0.75rem 0.75rem 0 !important; }
         .form-control { border-radius: 0.75rem 0 0 0.75rem !important; }
     </style>

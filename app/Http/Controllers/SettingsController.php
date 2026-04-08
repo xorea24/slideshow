@@ -47,6 +47,8 @@ class SettingsController extends Controller
         'transition_effect'      => 'required|string',
         'show_photo_name'        => 'required|boolean',
         'show_photo_description' => 'required|boolean',
+        'font_style'             => 'nullable|string',
+        'font_color'             => 'nullable|string',
         'display_album_ids'      => 'nullable|string',
         'overlay_position'       => 'nullable|string',
     ]);

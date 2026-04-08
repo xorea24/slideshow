@@ -22,22 +22,35 @@
 <div class="container-fluid">
     <form id="settings-form">
         @csrf
+        {{-- Hidden input to store the order of album IDs --}}
         <input type="hidden" name="display_album_ids" id="display_album_ids" value="{{ $settings['display_album_ids'] ?? '' }}">
 
         <div class="card settings-card shadow-sm border-0" style="border-radius: 1.5rem;">
             <div class="card-body p-4">
                 <div class="row">
-                    {{-- 1. SLIDE DURATION --}}
+                    {{-- 1. SLIDE DURATION & FONT STYLE --}}
                     <div class="col-md-4 mb-3">
                         <label class="text-uppercase small font-weight-bold text-muted tracking-wider">Slide Duration (SEC)</label>
-                        <input type="number" name="slide_duration" class="form-control form-control-lg border-0 bg-light" 
+                        <input type="number" name="slide_duration" class="form-control form-control-lg border-0 bg-light mb-3" 
                                value="{{ $settings['slide_duration'] ?? 5 }}" min="1" max="60">
+
+                        <label class="text-uppercase small font-weight-bold text-muted tracking-wider">Font Style</label>
+                        <select name="font_style" class="form-control form-control-lg border-0 bg-light">
+                            <option value="Inter" {{ ($settings['font_style'] ?? '') == 'Inter' ? 'selected' : '' }}>Inter (Modern Sans)</option>
+                            <option value="Montserrat" {{ ($settings['font_style'] ?? '') == 'Montserrat' ? 'selected' : '' }}>Montserrat (Bold Sans)</option>
+                            <option value="Tahoma" {{ ($settings['font_style'] ?? '') == 'Tahoma' ? 'selected' : '' }}>Tahoma (Standard)</option>
+                            <option value="Book Antiqua" {{ ($settings['font_style'] ?? '') == 'Book Antiqua' ? 'selected' : '' }}>Book Antiqua</option>
+                            <option value="Arial" {{ ($settings['font_style'] ?? '') == 'Arial' ? 'selected' : '' }}>Arial</option>
+                            <option value="Georgia" {{ ($settings['font_style'] ?? '') == 'Georgia' ? 'selected' : '' }}>Georgia</option>
+                            <option value="Times New Roman" {{ ($settings['font_style'] ?? '') == 'Times New Roman' ? 'selected' : '' }}>Times New Roman</option>
+                            <option value="Verdana" {{ ($settings['font_style'] ?? '') == 'Verdana' ? 'selected' : '' }}>Verdana</option>
+                        </select>
                     </div>
 
-                    {{-- 2. TRANSITION EFFECT --}}
+                    {{-- 2. TRANSITION EFFECT & FONT COLOR --}}
                     <div class="col-md-4 mb-3">
                         <label class="text-uppercase small font-weight-bold text-muted tracking-wider">Transition Effect</label>
-                        <select name="transition_effect" class="form-control form-control-lg border-0 bg-light">
+                        <select name="transition_effect" class="form-control form-control-lg border-0 bg-light mb-3">
                             @php
                                 $transitions = ['fade' => 'Smooth Fade', 'slide-up' => 'Slide Up', 'slide-down' => 'Slide Down', 'slide-left' => 'Slide Left', 'slide-right' => 'Slide Right'];
                             @endphp
@@ -45,9 +58,15 @@
                                 <option value="{{ $val }}" {{ ($settings['transition_effect'] ?? 'fade') == $val ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
+
+                        <label class="text-uppercase small font-weight-bold text-muted tracking-wider">Font Color</label>
+                        <select name="font_color" class="form-control form-control-lg border-0 bg-light">
+                            <option value="white" {{ ($settings['font_color'] ?? 'white') == 'white' ? 'selected' : '' }}>White</option>
+                            <option value="black" {{ ($settings['font_color'] ?? '') == 'black' ? 'selected' : '' }}>Black</option>
+                        </select>
                     </div>
 
-                    {{-- 3. OVERLAY INFO --}}
+                    {{-- 3. OVERLAY INFO & POSITION --}}
                     <div class="col-md-4 mb-3">
                         <label class="text-uppercase small font-weight-bold text-muted tracking-wider d-block">Overlay Display</label>
                         <div class="custom-control custom-switch custom-switch-on-success mt-2">
@@ -78,6 +97,7 @@
                 <hr class="my-4">
 
                 <div class="row mt-4">
+                    {{-- Album Selection --}}
                     <div class="col-md-6">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="text-uppercase small font-weight-bold text-muted">Available Albums</label>
@@ -99,6 +119,7 @@
                         </div>
                     </div>
 
+                    {{-- Slideshow Queue --}}
                     <div class="col-md-6">
                         <label class="text-uppercase small font-weight-bold text-primary">Slideshow Queue (Drag to Reorder)</label>
                         <div class="list-container p-3 rounded" id="slideshow-queue" 
@@ -173,7 +194,7 @@ $(document).ready(function() {
     const $queueContainer = $('#slideshow-queue');
     const $hiddenInput = $('#display_album_ids');
 
-    // 1. Initialize Sortable sa Main Queue
+    // 1. Initialize Sortable for Main Queue
     const queueSortable = new Sortable(document.getElementById('slideshow-queue'), {
         group: { name: 'slideshow', put: true },
         animation: 150,
@@ -182,21 +203,17 @@ $(document).ready(function() {
             const $el = $(evt.item);
             const id = $el.data('id').toString();
             const name = $el.data('name');
-            
             if ($el.hasClass('photo-drag-item')) { $el.remove(); }
-
             if (!activeAlbums.some(a => a.id === id)) {
                 activeAlbums.splice(evt.newIndex, 0, { id: id, name: name });
                 $(`.available[data-id="${id}"]`).addClass('selected');
             }
             renderQueue();
         },
-        onEnd: function() {
-            updateAlbumArrayFromDOM();
-        }
+        onEnd: function() { updateAlbumArrayFromDOM(); }
     });
 
-    // 2. Initialize Sortable sa Modal
+    // 2. Initialize Sortable for Photo Preview Modal
     const modalSortable = new Sortable(document.getElementById('preview-image-container'), {
         animation: 150,
         ghostClass: 'sortable-ghost'
@@ -236,7 +253,7 @@ $(document).ready(function() {
         $hiddenInput.val(activeAlbums.map(a => a.id).join(','));
     }
 
-    // Open Modal and Load Photos
+    // Modal: Load Photos
     $(document).on('click', '.preview-album-btn', function(e) {
         e.stopPropagation();
         const id = $(this).data('id');
@@ -248,7 +265,6 @@ $(document).ready(function() {
         $container.html('<div class="p-5 text-center"><i class="fas fa-spinner fa-spin fa-2x text-primary"></i></div>');
         $('#albumPreviewModal').modal('show');
 
-        // URL Prefix update: Siguraduhing tugma sa web.php
         $.get(`/admin/albums/${id}/photos`, function(photos) {
             $container.empty();
             if(photos.length === 0) {
@@ -257,51 +273,40 @@ $(document).ready(function() {
             }
             photos.forEach(p => {
                 let path = p.image_path || p.path;
-                // Tanggalin ang 'public/' prefix kung sakaling kasama ito sa db string
                 path = path.replace('public/', '');
                 if (path.startsWith('/')) path = path.substring(1);
-                
                 const imageUrl = `{{ asset('storage') }}/${path}`; 
-                
                 $container.append(`
                     <div class="photo-drag-item" data-photo-id="${p.id}" style="width: 120px; height: 80px;">
                         <img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 5px;" alt="Photo"> 
                     </div>
                 `);
             });
-        }).fail(() => $container.html('<p class="text-danger p-4">Error loading images. Check your route.</p>'));
+        }).fail(() => $container.html('<p class="text-danger p-4">Error loading images.</p>'));
     });
 
-    // Save Photo Order AJAX
+    // Save Photo Order
     $('#save-photo-order').on('click', function() {
         const $btn = $(this);
         let photoIds = [];
-        
         $('#preview-image-container .photo-drag-item').each(function() {
             photoIds.push($(this).data('photo-id'));
         });
-
         if (photoIds.length === 0) return;
-
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> SAVING...');
-
         $.ajax({
-            url: "{{ route('photos.reorder') }}", // Fixed absolute route via Laravel
+            url: "{{ route('photos.reorder') }}",
             method: "POST",
-            data: {
-                _token: "{{ csrf_token() }}",   
-                photo_ids: photoIds
-            },
+            data: { _token: "{{ csrf_token() }}", photo_ids: photoIds },
             success: function() {
                 Swal.fire({ icon: 'success', title: 'Sequence Saved!', timer: 1500, showConfirmButton: false });
                 $('#albumPreviewModal').modal('hide');
             },
-            error: () => Swal.fire('Error', 'Failed to save order. Check route and controller.', 'error'),
             complete: () => $btn.prop('disabled', false).html('SAVE PHOTO SEQUENCE <i class="fas fa-save ml-2"></i>')
         });
     });
 
-    // Main Settings Save
+    // Save Settings logic
     $('#save-settings-button').click(function() {
         const $btn = $(this);
         $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i> SAVING...');
@@ -312,12 +317,12 @@ $(document).ready(function() {
             success: function() {
                 Swal.fire({ icon: 'success', title: 'Settings Applied!', timer: 2000, showConfirmButton: false });
             },
-            error: () => Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' }),
+            error: () => Swal.fire('Error', 'Something went wrong.', 'error'),
             complete: () => $btn.prop('disabled', false).html('APPLY CHANGES <i class="fas fa-check ml-2"></i>')
         });
     });
 
-    // Click to Add logic
+    // UI Click logic
     $(document).on('click', '.available', function() {
         const id = $(this).data('id').toString();
         const name = $(this).data('name');
@@ -343,7 +348,7 @@ $(document).ready(function() {
         });
     });
 
-    // Initial load
+    // Init Load
     const savedIds = $hiddenInput.val();
     if(savedIds) {
         savedIds.split(',').forEach(id => {
